@@ -17,6 +17,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+# Modern ve profesyonel renk teması
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
@@ -26,13 +27,16 @@ class DinaMaksUltimate(ctk.CTk):
 
         # --- PENCERE AYARLARI ---
         self.title("dinaMAKS Veritabanı Koruyucu v5.0 - Enterprise")
-        self.geometry("1100x850")
+        self.geometry("1150x850")
+        self.minsize(900, 700)
         self.config_path = "ayarlar.json"
         self.db_mgr = DBManager()
         self.db_checks = {}
 
         # --- ANA DEĞİŞKENLER ---
         self.servis_adi = "DinaMaksBackupService"
+        self.menu_buttons = {}
+        self.current_page = None
         
         # --- UI LAYOUT ---
         self.grid_columnconfigure(0, weight=0) # Sidebar
@@ -46,107 +50,208 @@ class DinaMaksUltimate(ctk.CTk):
         self.load_config()
         self.check_service_status()
         logging.info("Uygulama başlatıldı.")
+        
+        # İlk sayfayı aç
+        self.show_page("sql")
 
     def setup_sidebar(self):
-        """Sol taraftaki navigasyon paneli"""
-        self.sidebar = ctk.CTkFrame(self, width=260, corner_radius=0)
+        """Sol taraftaki modern navigasyon paneli"""
+        self.sidebar = ctk.CTkFrame(self, width=260, corner_radius=0, fg_color=("gray90", "gray13"))
         self.sidebar.grid(row=0, column=0, sticky="nsew")
+        self.sidebar.grid_rowconfigure(6, weight=1) # Menü ile alt bilgi arasına boşluk
         
         # Logo ve Başlık
-        ctk.CTkLabel(self.sidebar, text="dinaMAKS", font=ctk.CTkFont(size=28, weight="bold"), text_color="#3b82f6").pack(pady=(30, 10))
-        ctk.CTkLabel(self.sidebar, text="Enterprise Edition", font=ctk.CTkFont(size=12)).pack(pady=(0, 30))
+        logo_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        logo_frame.grid(row=0, column=0, pady=(40, 30), padx=20, sticky="ew")
+        
+        ctk.CTkLabel(logo_frame, text="dinaMAKS", font=ctk.CTkFont(size=28, weight="bold"), text_color="#3b82f6").pack()
+        ctk.CTkLabel(logo_frame, text="Enterprise Edition", font=ctk.CTkFont(size=12, weight="bold"), text_color="gray").pack()
 
-        # Menü Butonları
+        # Menü Butonları ve İkonlar
         menu_items = [
-            ("SQL & Veritabanı", "sql"),
-            ("Bulut (FTP) Ayarları", "ftp"),
-            ("E-Posta Raporu", "mail"),
-            ("Zamanlama & Servis", "sched"),
-            ("Sistem Günlükleri", "logs")
+            ("💾  SQL & Veritabanı", "sql"),
+            ("☁️  Bulut (FTP)", "ftp"),
+            ("📧  E-Posta Raporu", "mail"),
+            ("⚙️  Otomasyon & Servis", "sched"),
+            ("📜  Sistem Günlükleri", "logs")
         ]
 
-        for text, page in menu_items:
+        for i, (text, page) in enumerate(menu_items, start=1):
             btn = ctk.CTkButton(
                 self.sidebar, text=text, height=45, fg_color="transparent", 
-                anchor="w", hover_color="#1e293b",
+                anchor="w", hover_color=("#e2e8f0", "#1e293b"),
+                font=ctk.CTkFont(size=14, weight="bold"), text_color=("gray10", "gray90"),
                 command=lambda p=page: self.show_page(p)
             )
-            btn.pack(pady=5, padx=20, fill="x")
+            btn.grid(row=i, column=0, pady=5, padx=15, sticky="ew")
+            self.menu_buttons[page] = btn
 
-        # Alt Bilgi
-        self.status_indicator = ctk.CTkLabel(self.sidebar, text="Servis: Kontrol Ediliyor...", text_color="orange")
-        self.status_indicator.pack(side="bottom", pady=20)
+        # Alt Bilgi / Servis Durumu
+        status_frame = ctk.CTkFrame(self.sidebar, fg_color=("gray85", "gray17"), corner_radius=8)
+        status_frame.grid(row=7, column=0, pady=20, padx=15, sticky="ew")
+        
+        ctk.CTkLabel(status_frame, text="Servis Durumu", font=ctk.CTkFont(size=11, weight="bold")).pack(pady=(10, 0))
+        self.status_indicator = ctk.CTkLabel(status_frame, text="Kontrol Ediliyor...", text_color="#f59e0b", font=ctk.CTkFont(size=13, weight="bold"))
+        self.status_indicator.pack(pady=(0, 10))
+
+    def create_input_group(self, parent, label_text, placeholder, is_password=False):
+        """Label ve Entry'yi modern bir şekilde gruplayan yardımcı fonksiyon"""
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        
+        # Şık etiket
+        ctk.CTkLabel(frame, text=label_text, font=ctk.CTkFont(size=12, weight="bold"), text_color=("gray30", "gray70")).pack(anchor="w", padx=2, pady=(0, 2))
+        
+        # Giriş alanı
+        ent = ctk.CTkEntry(frame, placeholder_text=placeholder, height=40, corner_radius=6, border_width=1)
+        if is_password: 
+            ent.configure(show="•")
+        ent.pack(fill="x", expand=True)
+        return frame, ent
 
     def setup_content_area(self):
-        """Sağ taraftaki içerik sayfaları"""
+        """Sağ taraftaki içerik sayfaları - Kart tasarımları ile"""
         self.container = ctk.CTkFrame(self, fg_color="transparent")
-        self.container.grid(row=0, column=1, padx=30, pady=30, sticky="nsew")
+        self.container.grid(row=0, column=1, padx=40, pady=40, sticky="nsew")
 
         self.pages = {}
 
+        # -------------------------------------------------------------
         # 1. SQL SAYFASI
+        # -------------------------------------------------------------
         p_sql = ctk.CTkFrame(self.container, fg_color="transparent")
-        ctk.CTkLabel(p_sql, text="1. SQL Sunucu Bağlantısı", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=10, anchor="w")
+        ctk.CTkLabel(p_sql, text="SQL Sunucu Yapılandırması", font=ctk.CTkFont(size=24, weight="bold")).pack(anchor="w", pady=(0, 20))
         
-        self.ent_server = self.create_input(p_sql, "Sunucu Adresi (Örn: .\\SQLEXPRESS)")
-        self.ent_sql_user = self.create_input(p_sql, "Kullanıcı Adı (Windows Auth için boş bırak)")
-        self.ent_sql_pass = self.create_input(p_sql, "Şifre", is_password=True)
+        # Bağlantı Kartı
+        card_sql = ctk.CTkFrame(p_sql, fg_color=("gray90", "gray13"), corner_radius=10)
+        card_sql.pack(fill="x", pady=(0, 20), ipady=15, ipadx=15)
         
-        ctk.CTkButton(p_sql, text="SUNUCUYA BAĞLAN VE LİSTEYİ GÜNCELLE", fg_color="#2563eb", height=45, command=self.handle_sql_connect).pack(pady=20, fill="x")
+        _, self.ent_server = self.create_input_group(card_sql, "Sunucu Adresi", "Örn: .\\SQLEXPRESS veya 192.168.1.100")
+        self.ent_server.master.pack(fill="x", pady=5)
         
-        self.db_list_container = ctk.CTkScrollableFrame(p_sql, height=350, label_text="Yedeklenecek Veritabanları")
-        self.db_list_container.pack(fill="both", expand=True, pady=10)
+        # Kullanıcı ve Şifreyi yan yana koyalım
+        sql_cred_frame = ctk.CTkFrame(card_sql, fg_color="transparent")
+        sql_cred_frame.pack(fill="x", pady=5)
+        sql_cred_frame.grid_columnconfigure((0, 1), weight=1)
+        
+        _, self.ent_sql_user = self.create_input_group(sql_cred_frame, "SQL Kullanıcı Adı", "Windows Auth için boş bırakın")
+        self.ent_sql_user.master.grid(row=0, column=0, padx=(0, 10), sticky="ew")
+        
+        _, self.ent_sql_pass = self.create_input_group(sql_cred_frame, "SQL Şifresi", "••••••••", is_password=True)
+        self.ent_sql_pass.master.grid(row=0, column=1, padx=(10, 0), sticky="ew")
+
+        ctk.CTkButton(card_sql, text="Bağlantıyı Sına & Listeyi Güncelle", font=ctk.CTkFont(weight="bold"), fg_color="#2563eb", hover_color="#1d4ed8", height=45, command=self.handle_sql_connect).pack(pady=(20, 5), fill="x")
+        
+        # Veritabanı Listesi Kartı
+        self.db_list_container = ctk.CTkScrollableFrame(p_sql, label_text="Yedeklenecek Veritabanlarını Seçin", label_font=ctk.CTkFont(size=14, weight="bold"), fg_color=("gray90", "gray13"))
+        self.db_list_container.pack(fill="both", expand=True)
         self.pages["sql"] = p_sql
 
+        # -------------------------------------------------------------
         # 2. FTP SAYFASI
+        # -------------------------------------------------------------
         p_ftp = ctk.CTkFrame(self.container, fg_color="transparent")
-        ctk.CTkLabel(p_ftp, text="2. FTP / Bulut Ayarları (Opsiyonel)", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=10, anchor="w")
-        self.ent_ftp_host = self.create_input(p_ftp, "FTP Adresi (ftp.siteniz.com)")
-        self.ent_ftp_user = self.create_input(p_ftp, "FTP Kullanıcı")
-        self.ent_ftp_pass = self.create_input(p_ftp, "FTP Şifre", is_password=True)
+        ctk.CTkLabel(p_ftp, text="Bulut (FTP) Yedekleme Ayarları", font=ctk.CTkFont(size=24, weight="bold")).pack(anchor="w", pady=(0, 20))
+        
+        card_ftp = ctk.CTkFrame(p_ftp, fg_color=("gray90", "gray13"), corner_radius=10)
+        card_ftp.pack(fill="x", ipady=15, ipadx=15)
+
+        _, self.ent_ftp_host = self.create_input_group(card_ftp, "FTP Sunucu Adresi", "Örn: ftp.sirketiniz.com")
+        self.ent_ftp_host.master.pack(fill="x", pady=10)
+        
+        _, self.ent_ftp_user = self.create_input_group(card_ftp, "FTP Kullanıcı Adı", "Kullanıcı adınızı girin")
+        self.ent_ftp_user.master.pack(fill="x", pady=10)
+        
+        _, self.ent_ftp_pass = self.create_input_group(card_ftp, "FTP Şifresi", "••••••••", is_password=True)
+        self.ent_ftp_pass.master.pack(fill="x", pady=10)
         self.pages["ftp"] = p_ftp
 
+        # -------------------------------------------------------------
         # 3. MAIL SAYFASI
+        # -------------------------------------------------------------
         p_mail = ctk.CTkFrame(self.container, fg_color="transparent")
-        ctk.CTkLabel(p_mail, text="3. E-Posta Raporlama", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=10, anchor="w")
-        self.ent_mail_from = self.create_input(p_mail, "Gönderen E-Posta")
-        self.ent_mail_pass = self.create_input(p_mail, "E-Posta Uygulama Şifresi", is_password=True)
-        self.ent_mail_to = self.create_input(p_mail, "Alıcı E-Posta")
+        ctk.CTkLabel(p_mail, text="E-Posta Raporlama Bildirimleri", font=ctk.CTkFont(size=24, weight="bold")).pack(anchor="w", pady=(0, 20))
+        
+        card_mail = ctk.CTkFrame(p_mail, fg_color=("gray90", "gray13"), corner_radius=10)
+        card_mail.pack(fill="x", ipady=15, ipadx=15)
+
+        _, self.ent_mail_from = self.create_input_group(card_mail, "Gönderen E-Posta Adresi", "Örn: dinamikotomasyon@otomasyon.com")
+        self.ent_mail_from.master.pack(fill="x", pady=10)
+        
+        _, self.ent_mail_pass = self.create_input_group(card_mail, "Uygulama Şifresi (App Password)", "••••••••", is_password=True)
+        self.ent_mail_pass.master.pack(fill="x", pady=10)
+        
+        _, self.ent_mail_to = self.create_input_group(card_mail, "Raporların Gideceği Alıcı", "Örn: admin@sirket.com")
+        self.ent_mail_to.master.pack(fill="x", pady=10)
         self.pages["mail"] = p_mail
 
+        # -------------------------------------------------------------
         # 4. ZAMANLAMA & SERVİS SAYFASI
+        # -------------------------------------------------------------
         p_sched = ctk.CTkFrame(self.container, fg_color="transparent")
-        ctk.CTkLabel(p_sched, text="4. Otomasyon Ayarları", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=10, anchor="w")
-        self.ent_time = self.create_input(p_sched, "Yedekleme Saati (Örn: 03:00)")
+        ctk.CTkLabel(p_sched, text="Otomasyon ve Windows Servis Yönetimi", font=ctk.CTkFont(size=24, weight="bold")).pack(anchor="w", pady=(0, 20))
         
-        ctk.CTkButton(p_sched, text="TÜM AYARLARI KAYDET", fg_color="#10b981", height=50, command=self.save_config).pack(pady=10, fill="x")
-        ctk.CTkButton(p_sched, text="SERVİSİ WİNDOWS'A KUR / GÜNCELLE", fg_color="#334155", height=50, command=self.manage_service_install).pack(pady=5, fill="x")
+        # Ayarlar Kartı
+        card_sched = ctk.CTkFrame(p_sched, fg_color=("gray90", "gray13"), corner_radius=10)
+        card_sched.pack(fill="x", pady=(0, 20), ipady=15, ipadx=15)
         
-        self.btn_servis_start = ctk.CTkButton(p_sched, text="SERVİSİ BAŞLAT", fg_color="#2563eb", command=lambda: self.service_control("start"))
-        self.btn_servis_start.pack(pady=5, fill="x")
+        _, self.ent_time = self.create_input_group(card_sched, "Günlük Yedekleme Saati (HH:MM)", "Örn: 03:00")
+        self.ent_time.master.pack(fill="x", pady=10)
         
-        ctk.CTkButton(p_sched, text="ŞİMDİ MANUEL YEDEK AL", fg_color="#f59e0b", height=50, command=self.manual_backup_trigger).pack(pady=20, fill="x")
+        ctk.CTkButton(card_sched, text="Tüm Yapılandırmayı Kaydet", font=ctk.CTkFont(weight="bold"), fg_color="#10b981", hover_color="#059669", height=45, command=self.save_config).pack(pady=(15, 5), fill="x")
+
+        # Servis Aksiyonları Kartı
+        card_actions = ctk.CTkFrame(p_sched, fg_color=("gray90", "gray13"), corner_radius=10)
+        card_actions.pack(fill="x", ipady=15, ipadx=15)
+        
+        ctk.CTkLabel(card_actions, text="Servis Aksiyonları", font=ctk.CTkFont(size=16, weight="bold")).pack(anchor="w", pady=(0, 10))
+
+        action_grid = ctk.CTkFrame(card_actions, fg_color="transparent")
+        action_grid.pack(fill="x")
+        action_grid.grid_columnconfigure((0, 1), weight=1)
+
+        ctk.CTkButton(action_grid, text="Servisi Kur / Güncelle", fg_color="#475569", hover_color="#334155", height=40, command=self.manage_service_install).grid(row=0, column=0, padx=(0, 10), pady=5, sticky="ew")
+        self.btn_servis_start = ctk.CTkButton(action_grid, text="Servisi Başlat / Durdur", fg_color="#2563eb", hover_color="#1d4ed8", height=40, command=lambda: self.service_control("start"))
+        self.btn_servis_start.grid(row=0, column=1, padx=(10, 0), pady=5, sticky="ew")
+
+        ctk.CTkButton(card_actions, text="Şimdi Manuel Yedekleme Başlat", font=ctk.CTkFont(weight="bold"), fg_color="#f59e0b", hover_color="#d97706", height=45, command=self.manual_backup_trigger).pack(pady=(15, 0), fill="x")
+
         self.pages["sched"] = p_sched
 
+        # -------------------------------------------------------------
         # 5. LOG SAYFASI
+        # -------------------------------------------------------------
         p_logs = ctk.CTkFrame(self.container, fg_color="transparent")
-        ctk.CTkLabel(p_logs, text="5. Sistem Günlükleri", font=ctk.CTkFont(size=22, weight="bold")).pack(pady=10, anchor="w")
-        self.log_text = ctk.CTkTextbox(p_logs, height=500)
+        
+        log_header = ctk.CTkFrame(p_logs, fg_color="transparent")
+        log_header.pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkLabel(log_header, text="Sistem Günlükleri", font=ctk.CTkFont(size=24, weight="bold")).pack(side="left")
+        ctk.CTkButton(log_header, text="Logları Yenile", width=120, height=35, command=self.refresh_logs).pack(side="right")
+        
+        self.log_text = ctk.CTkTextbox(p_logs, font=ctk.CTkFont(family="Consolas", size=13), fg_color=("gray90", "gray13"), border_width=1)
         self.log_text.pack(fill="both", expand=True)
-        ctk.CTkButton(p_logs, text="LOGLARI YENİLE", command=self.refresh_logs).pack(pady=10)
         self.pages["logs"] = p_logs
 
-    def create_input(self, master, placeholder, is_password=False):
-        ent = ctk.CTkEntry(master, placeholder_text=placeholder, width=500, height=45)
-        if is_password: ent.configure(show="*")
-        ent.pack(pady=10)
-        return ent
-
     def show_page(self, name):
-        for p in self.pages.values(): p.pack_forget()
-        self.pages[name].pack(fill="both", expand=True)
+        """Sayfalar arası geçiş ve aktif buton stili yönetimi"""
+        # Aktif butonu vurgula, diğerlerini sıfırla
+        for key, btn in self.menu_buttons.items():
+            if key == name:
+                btn.configure(fg_color=("#cbd5e1", "#334155")) # Aktif arka plan
+            else:
+                btn.configure(fg_color="transparent")
 
-    # --- MANTIK VE VERİ İŞLEMLERİ ---
+        # Mevcut sayfayı gizle, yenisini göster
+        for p in self.pages.values(): 
+            p.pack_forget()
+        self.pages[name].pack(fill="both", expand=True)
+        self.current_page = name
+
+        # Log sayfasına geçiliyorsa otomatik yenile
+        if name == "logs":
+            self.refresh_logs()
+
+    # --- MANTIK VE VERİ İŞLEMLERİ (Aynı Kaldı) ---
 
     def handle_sql_connect(self):
         server = self.ent_server.get()
@@ -159,13 +264,13 @@ class DinaMaksUltimate(ctk.CTk):
             dbs = self.db_mgr.get_databases()
             for db in dbs:
                 var = ctk.BooleanVar()
-                cb = ctk.CTkCheckBox(self.db_list_container, text=db, variable=var)
-                cb.pack(anchor="w", padx=20, pady=5)
+                cb = ctk.CTkCheckBox(self.db_list_container, text=db, variable=var, font=ctk.CTkFont(size=13))
+                cb.pack(anchor="w", padx=20, pady=8)
                 self.db_checks[db] = var
-            messagebox.showinfo("Başarılı", f"{len(dbs)} Veritabanı listelendi.")
+            messagebox.showinfo("Başarılı", f"{len(dbs)} Veritabanı başarıyla listelendi.")
             logging.info("SQL Bağlantısı başarılı.")
         else:
-            messagebox.showerror("Hata", "SQL Sunucusuna bağlanılamadı.")
+            messagebox.showerror("Bağlantı Hatası", "SQL Sunucusuna bağlanılamadı. Bilgileri kontrol edin.")
             logging.error("SQL Bağlantı hatası.")
 
     def save_config(self):
@@ -186,10 +291,11 @@ class DinaMaksUltimate(ctk.CTk):
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
-            messagebox.showinfo("Sistem", "Ayarlar başarıyla kaydedildi.")
+            messagebox.showinfo("Başarılı", "Tüm sistem ayarları başarıyla kaydedildi.")
             logging.info("Ayarlar JSON dosyasına yazıldı.")
         except Exception as e:
             logging.error(f"Kayıt hatası: {e}")
+            messagebox.showerror("Hata", "Ayarlar kaydedilirken bir sorun oluştu.")
 
     def load_config(self):
         if os.path.exists(self.config_path):
@@ -206,11 +312,11 @@ class DinaMaksUltimate(ctk.CTk):
         try:
             output = subprocess.check_output(f'sc query {self.servis_adi}', shell=True).decode()
             if "RUNNING" in output:
-                self.status_indicator.configure(text="Servis: ÇALIŞIYOR", text_color="#10b981")
+                self.status_indicator.configure(text="🟢 Çalışıyor", text_color="#10b981")
             else:
-                self.status_indicator.configure(text="Servis: DURDURULDU", text_color="#ef4444")
+                self.status_indicator.configure(text="🔴 Durduruldu", text_color="#ef4444")
         except:
-            self.status_indicator.configure(text="Servis: KURULU DEĞİL", text_color="gray")
+            self.status_indicator.configure(text="⚪ Kurulu Değil", text_color="gray")
 
     def manage_service_install(self):
         script_path = os.path.abspath("arka_plan_servisi.py")
@@ -220,7 +326,7 @@ class DinaMaksUltimate(ctk.CTk):
             messagebox.showinfo("Servis", "Servis başarıyla Windows'a kaydedildi.")
             self.check_service_status()
         except Exception as e:
-            messagebox.showerror("Hata", "Servis kurulumu için yönetici izni gerekebilir.")
+            messagebox.showerror("Yetki Hatası", "Servis kurulumu için programı Yönetici (Administrator) olarak çalıştırmanız gerekebilir.")
 
     def service_control(self, action):
         cmd = "start" if action == "start" else "stop"
@@ -228,13 +334,14 @@ class DinaMaksUltimate(ctk.CTk):
             subprocess.run(["net", cmd, self.servis_adi], check=True)
             self.check_service_status()
         except:
-            messagebox.showerror("Hata", f"Servis {action} işlemi başarısız.")
+            messagebox.showerror("Hata", f"Servis {action} işlemi başarısız. Yönetici izinlerini kontrol edin.")
 
     # --- MANUEL İŞLEMLER ---
 
     def manual_backup_trigger(self):
         secili = [db for db, var in self.db_checks.items() if var.get()]
-        if not secili: return messagebox.showwarning("Uyarı", "DB Seçin!")
+        if not secili: 
+            return messagebox.showwarning("Eksik Seçim", "Lütfen SQL sekmesinden en az bir veritabanı seçin!")
         
         threading.Thread(target=self.run_manual_backup, args=(secili,), daemon=True).start()
 
@@ -243,14 +350,15 @@ class DinaMaksUltimate(ctk.CTk):
         engine = BackupEngine(self.db_mgr)
         for db in dbs:
             engine.execute_backup(db)
-        messagebox.showinfo("Bitti", "Yedekleme tamamlandı. Logları kontrol edin.")
+        messagebox.showinfo("İşlem Tamam", "Yedekleme görevleri tamamlandı. Detaylar için logları kontrol edin.")
         logging.info("Manuel yedekleme başarıyla bitti.")
 
     def refresh_logs(self):
         if os.path.exists("dinamaks_system.log"):
-            with open("dinamaks_system.log", "r") as f:
+            with open("dinamaks_system.log", "r", encoding="utf-8") as f:
                 self.log_text.delete("1.0", "end")
                 self.log_text.insert("1.0", f.read())
+                self.log_text.see("end") # Otomatik en aşağı kaydır
 
 if __name__ == "__main__":
     app = DinaMaksUltimate()
