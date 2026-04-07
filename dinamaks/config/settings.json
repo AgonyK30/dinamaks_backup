@@ -1,0 +1,13 @@
+{
+    "sql_server": ".\\SQLEXPRESS",
+    "sql_user": "",
+    "sql_pass": "",
+    "backup_path": "C:\\SQLBackups",
+    "ftp_host": "",
+    "ftp_user": "",
+    "ftp_pass": "",
+    "email_to": "dinamaks@admin.com",
+    "schedule_time": "12:00",
+    "selected_dbs": [],
+    "backup_all_non_system": true
+}

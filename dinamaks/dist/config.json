@@ -1,0 +1,15 @@
+{
+    "sql_server": ".\\SQLEXPRESS",
+    "sql_user": "dnmk",
+    "sql_pass": "1475",
+    "ftp_host": "",
+    "ftp_user": "",
+    "ftp_pass": "",
+    "mail_user": "",
+    "mail_pass": "",
+    "mail_to": "",
+    "schedule_time": "15:10",
+    "selected_dbs": [
+        "DinamikServer"
+    ]
+}

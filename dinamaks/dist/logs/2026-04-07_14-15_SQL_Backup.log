@@ -1,0 +1,3 @@
+[2026-04-07 14:15:28] INFO     [db.py:22] Bağlantı Başarılı: .\SQLEXPRESS
+[2026-04-07 14:15:28] INFO     [backup.py:21] MikroDesktop yedekleniyor...
+[2026-04-07 14:15:28] INFO     [backup.py:27] Yedek Dosyası Oluşturuldu: C:\SQLBackups\MikroDesktop_20260407_141528.bak

@@ -1,0 +1,5 @@
+[2026-04-07 11:41:44] INFO     [main.py:12] --- DINAMIK SQL Backup Manager Başlatıldı ---
+[2026-04-07 11:41:49] ERROR    [db.py:25] Bağlantı Hatası: ('08001', '[08001] [Microsoft][ODBC Driver 17 for SQL Server]SQL Server Network Interfaces: Error Locating Server/Instance Specified [xFFFFFFFF].  (-1) (SQLDriverConnect); [08001] [Microsoft][ODBC Driver 17 for SQL Server]Login timeout expired (0); [08001] [Microsoft][ODBC Driver 17 for SQL Server]A network-related or instance-specific error has occurred while establishing a connection to SQL Server. Server is not found or not accessible. Check if instance name is correct and if SQL Server is configured to allow remote connections. For more information see SQL Server Books Online. (-1)')
+[2026-04-07 11:41:57] INFO     [db.py:22] Bağlantı Başarılı: .\SQLEXPRESS
+[2026-04-07 11:41:57] INFO     [backup.py:21] MikroDesktop yedekleniyor...
+[2026-04-07 11:41:57] INFO     [backup.py:27] Yedek Dosyası Oluşturuldu: C:\SQLBackups\MikroDesktop_20260407_114157.bak

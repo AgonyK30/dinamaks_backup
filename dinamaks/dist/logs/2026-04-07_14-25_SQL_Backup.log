@@ -1,0 +1,3 @@
+[2026-04-07 14:25:36] INFO     [db.py:22] Bağlantı Başarılı: .\SQLEXPRESS
+[2026-04-07 14:25:47] INFO     [backup.py:21] DinamikServer yedekleniyor...
+[2026-04-07 14:25:47] INFO     [backup.py:27] Yedek Dosyası Oluşturuldu: C:\SQLBackups\DinamikServer_20260407_142547.bak

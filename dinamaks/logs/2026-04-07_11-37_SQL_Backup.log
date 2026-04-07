@@ -1,0 +1,2 @@
+[2026-04-07 11:37:36] INFO     [main.py:12] --- DINAMIK SQL Backup Manager Başlatıldı ---
+[2026-04-07 11:37:56] ERROR    [db.py:33] HİÇBİR SÜRÜCÜ İLE BAĞLANILAMADI! SQL Server servisinin adını ve çalıştığını kontrol edin.

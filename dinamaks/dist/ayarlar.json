@@ -1,0 +1,15 @@
+{
+    "sql_server": ".\\SQLEXPRESS",
+    "sql_user": "",
+    "sql_pass": "",
+    "ftp_host": "",
+    "ftp_user": "",
+    "ftp_pass": "",
+    "mail_from": "",
+    "mail_pass": "",
+    "mail_to": "",
+    "saat": "15:25",
+    "veritabanlari": [
+        "MikroDesktop"
+    ]
+}

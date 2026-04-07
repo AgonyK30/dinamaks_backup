@@ -1,0 +1,2 @@
+[2026-04-07 11:33:25] INFO     [main.py:12] --- DINAMIK SQL Backup Manager Başlatıldı ---
+[2026-04-07 11:33:42] ERROR    [db.py:21] MSSQL Bağlantı Hatası: ('08001', '[08001] [Microsoft][ODBC SQL Server Driver][Shared Memory]SQL Server yok veya erişim engellendi. (17) (SQLDriverConnect); [08001] [Microsoft][ODBC SQL Server Driver][Shared Memory]ConnectionOpen (Connect()). (2)')
