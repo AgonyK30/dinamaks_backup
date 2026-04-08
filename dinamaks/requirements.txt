@@ -1,1 +1,3 @@
 python -m PyInstaller --noconfirm --onefile --windowed --name "dinaMAKS" --add-data "core;core" --collect-all customtkinter main.py
+
+python arkaplan.py install
